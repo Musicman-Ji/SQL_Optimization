@@ -1,0 +1,12 @@
+SHOP : shop_id, name, alias, city_i, phone, hours, avg_price, stars, photos, description, tags, navigation, characteristics, product_rating, environment_rating, service_rating, very_good_remarks, good_remarks, common_remarks, bad_remarks, very_bad_remarks, recommended_dishes, is_chains, groupon, card
+
+CITY : city_i, city, province
+
+ADDRESS : original_latitude, original_longitude, address, area, business_area, city_i
+
+Tag : tags
+
+
+
+
+"10004038", "阿姨奶茶专卖(五角场国济路店)", "", "上海", "上海", "1", "杨浦区", "国济路28-1号(近政通路)", "五角场/大学区", "18301885507,18301885517", "11.00--23.00", "7", "3.5", "http://i3.dpfile.com/pc/d22ac1b9d6bde9100f6352c4b0e7edc7/33657749_m.jpg", "", "饮品,五角场/大学区,可送外卖,随便吃吃", "31.30216", "121.51602", "上海餐厅>>杨浦区>>五角场/大学区>>面包甜点>>饮品>>阿姨奶茶专卖(五角场国济路店)", "外送", "7.0", "7.1", "7.2", "14", "30", "53", "28", "18", "血糯米奶茶,布丁奶茶,芋圆奶茶,血糯米芋圆奶茶,门面", "1", "", ""
