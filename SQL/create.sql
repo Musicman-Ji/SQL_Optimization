@@ -6,7 +6,8 @@ create table city
 (
 	province varchar(10),
 	name varchar(100),
-	cid int
+	cid int,
+	primary key(cid)
 );
 
 create table address
@@ -16,7 +17,8 @@ create table address
 	address varchar(100),
 	b_area varchar(100),
 	lat varchar(100),
-	lon varchar(100)
+	lon varchar(100),
+	foreign key(cid) references city(cid)
 );
 
 create table shop
@@ -27,7 +29,7 @@ create table shop
 	address varchar(100),
 	phone varchar(100), 
 	hours varchar(1000), 
-	avg_price varchar(100), 
+	avg_price int, 
 	stars varchar(100), 
 	photos varchar(100), 
 	description varchar(1000), 
@@ -44,7 +46,8 @@ create table shop
 	recommended_dishes varchar(1000), 
 	is_chains int, 
 	groupon varchar(1000), 
-	card varchar(100)
+	card varchar(100),
+	primary key(sid)
 );
 
 create table tag
