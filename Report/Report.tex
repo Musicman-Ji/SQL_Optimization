@@ -1,157 +1,332 @@
-1.1
+\documentclass[a4paper, 11pt, nofonts, nocap, fancyhdr]{ctexart}
+
+\usepackage[margin=60pt]{geometry}
+
+%\usepackage{fontspec}
+%\setmainfont{Arial}
+%\setsansfont{Arial}
+%\setmonofont{Consolas}
+
+\usepackage{xeCJK}
+%\setCJKmainfont[BoldFont={FZDaHei-B02}, ItalicFont={FZXingKai-S04}]{FZLanTingHei-R-GBK}
+%\setCJKsansfont{FZLanTingHei-R-GBK}
+%\setCJKmonofont{FZLanTingHei-R-GBK}
+\setCJKmainfont[BoldFont=STHeiti, ItalicFont=STKaiti]{STSong}
+\setCJKsansfont[BoldFont=STHeiti]{STXihei}
+\setCJKmonofont{STFangsong}
+
+\usepackage{enumitem}
+\setenumerate[1]{itemsep=0pt,partopsep=0pt,parsep=\parskip,topsep=0pt}
+\setitemize[1]{itemsep=0pt,partopsep=0pt,parsep=\parskip,topsep=0pt}
+\setdescription{itemsep=0pt,partopsep=0pt,parsep=\parskip,topsep=0pt}
+
+\usepackage{listings}
+\lstset{
+	language=SQL,
+	basicstyle=\ttfamily\small,
+	breaklines=true,
+	tabsize=4,
+	showstringspaces=true,
+	extendedchars=false
+}
+
+\usepackage{graphicx}
+\usepackage{subfigure}
+	\renewcommand\figurename{图}
+
+\usepackage{ulem}
+\usepackage[bookmarks=true,colorlinks,linkcolor=black]{hyperref}
+
+\CTEXoptions[today=small]
+\setcounter{secnumdepth}{4}
+
+\pagestyle{plain}
+
+\title{数据库引论 Project——数据库查询优化}
+\author
+{
+	胡旻\\
+	13307130086
+	\and
+	周吉\\
+	13307130227
+}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+\setcounter{page}{0}
+\thispagestyle{empty}
+\newpage
+
+\section{实验概述}
+
+\subsection{主要内容}
+
+给定大众点评中的店铺信息，将其分解至满足第三范式。然后在数据集上，针对不同类型的查询语句，进行分析优化。
+
+\subsection{分析方式}
+
+由于给定的信息数据实在太小，慢查询等优化手段无法体现效果，所以在实验中，主要采用了explain对查询语句进行分析，根据分析结果中的row，对查询的效率进行评判，从而找出一种优化的方式，并以此判断优化的比例。
+
+\subsection{实验环境}
+
+mysql  Ver 14.14 Distrib 5.6.24
+
+Mac OS
+
+\section{实验内容}
+
+\subsection{Task 1}
+
+对数据进行分析以后，可以分成4个表：
+
+\begin{itemize}
+    \item CITY : cityi, city, province
+    \item ADDRESS : originallatitude, originallongitude, address, area, businessarea, cityi
+    \item Tag : tags, shopid
+    \item SHOP : shopid, name, alias, cityi, phone, hours, avgprice, stars, photos, description, tags, navigation, characteristics, productrating, environmentrating, servicerating, verygoodremarks, goodremarks, commonremarks, badremarks, verybadremarks, recommendeddishes, ischains, groupon, card
+\end{itemize}
+
+根据第三范式的规则，以上拆分满足第三范式。
+
+\subsection{Task 2}
+
+\subsubsection{单表查询}
+
+\textbf{(1) 查询表中的所有字段} 
+      
 explain select * from city;
 
+查询全部city中的字段，所以至少读取59行。（0.00123325s）
+
+\begin{verbatim}
 +----+-------------+-------+------+---------------+------+---------+------+------+-------+
 | id | select_type | table | type | possible_keys | key  | key_len | ref  | rows | Extra |
 +----+-------------+-------+------+---------------+------+---------+------+------+-------+
 |  1 | SIMPLE      | city  | ALL  | NULL          | NULL | NULL    | NULL |   59 | NULL  |
 +----+-------------+-------+------+---------------+------+---------+------+------+-------+
-1 row in set (0.00 sec)
+\end{verbatim}
 
+无法优化
 
-1.2
-explain select name from city;
+\vspace{0.7cm}
 
+\textbf{(2) 查询表中的指定字段} 
+
+explain select name from city;（0.00054675s）
+
+查询全部city中的name字段，所以至少读取59行。 
+
+\begin{verbatim}
 +----+-------------+-------+------+---------------+------+---------+------+------+-------+
 | id | select_type | table | type | possible_keys | key  | key_len | ref  | rows | Extra |
 +----+-------------+-------+------+---------------+------+---------+------+------+-------+
 |  1 | SIMPLE      | city  | ALL  | NULL          | NULL | NULL    | NULL |   59 | NULL  |
 +----+-------------+-------+------+---------------+------+---------+------+------+-------+
-1 row in set (0.00 sec)
+\end{verbatim}
 
+无法优化
 
-1.3
+\vspace{0.7cm}
+
+\textbf{(3) 查询表中没有重复的字段（distinct）的使用} 
+
 explain select distinct province from city;
 
+查询不重名的所有省份（0.04483825s）
+
+\begin{verbatim}
 +----+-------------+-------+------+---------------+------+---------+------+------+-------+
 | id | select_type | table | type | possible_keys | key  | key_len | ref  | rows | Extra |
 +----+-------------+-------+------+---------------+------+---------+------+------+-------+
 |  1 | SIMPLE      | city  | ALL  | NULL          | NULL | NULL    | NULL |   59 | NULL  |
 +----+-------------+-------+------+---------------+------+---------+------+------+-------+
-1 row in set (0.00 sec)
+\end{verbatim}
 
-1.4
-(1)
-explain select * from city where cid=1;
+无法优化
 
+\vspace{0.7cm}
+
+\textbf{(4) 条件查询各表主键的字段（单值查询或范围查询）} 
+
+i.explain select * from city where cid=1;
+
+查询cid为1的城市
+
+\begin{verbatim}
 +----+-------------+-------+-------+---------------+---------+---------+-------+------+-------+
 | id | select_type | table | type  | possible_keys | key     | key_len | ref   | rows | Extra |
 +----+-------------+-------+-------+---------------+---------+---------+-------+------+-------+
 |  1 | SIMPLE      | city  | const | PRIMARY       | PRIMARY | 4       | const |    1 | NULL  |
 +----+-------------+-------+-------+---------------+---------+---------+-------+------+-------+
-1 row in set (0.00 sec)
+\end{verbatim}
 
-(2)
-explain select * from city where cid>1 and cid<10;
+主键本身就是一个索引，所以无法优化
 
+ii.explain select * from city where cid>1 and cid<10;
+
+查询 cid 在1到10之间的城市 
+
+\begin{verbatim}
 +----+-------------+-------+-------+---------------+---------+---------+------+------+-------------+
 | id | select_type | table | type  | possible_keys | key     | key_len | ref  | rows | Extra       |
 +----+-------------+-------+-------+---------------+---------+---------+------+------+-------------+
 |  1 | SIMPLE      | city  | range | PRIMARY       | PRIMARY | 4       | NULL |    7 | Using where |
 +----+-------------+-------+-------+---------------+---------+---------+------+------+-------------+
-1 row in set (0.00 sec)
+\end{verbatim}
 
+无需优化
 
-1.5
+\vspace{0.7cm}
+
+\textbf{(5) 条件查询各表中普通字段（单值查询或范围查询）} 
+
 explain select * from city where province='浙江';
 
+查询浙江省的全部信息，扫描了59行。
+
+\begin{verbatim}
 +----+-------------+-------+------+---------------+------+---------+------+------+-------------+
 | id | select_type | table | type | possible_keys | key  | key_len | ref  | rows | Extra       |
 +----+-------------+-------+------+---------------+------+---------+------+------+-------------+
 |  1 | SIMPLE      | city  | ALL  | NULL          | NULL | NULL    | NULL |   59 | Using where |
 +----+-------------+-------+------+---------------+------+---------+------+------+-------------+
-1 row in set (0.00 sec)
+\end{verbatim}
 
-create index index_province on city(province);
+create index index\_province on city(province);
 
 explain select * from city where province='浙江';
+
+\begin{verbatim}
 +----+-------------+-------+------+----------------+----------------+---------+-------+------+-----------------------+
 | id | select_type | table | type | possible_keys  | key            | key_len | ref   | rows | Extra                 |
 +----+-------------+-------+------+----------------+----------------+---------+-------+------+-----------------------+
 |  1 | SIMPLE      | city  | ref  | index_province | index_province | 33      | const |    6 | Using index condition |
 +----+-------------+-------+------+----------------+----------------+---------+-------+------+-----------------------+
-1 row in set (0.00 sec)
+\end{verbatim}
 
+建立以province为关键字的索引，可以看到估计所用的行数大大减少了，只有原来的1/10。
 
-1.6
-explain select sid from shop where good_remarks>20 and very_bad_remarks<10;
+\vspace{0.7cm}
 
+\textbf{(6) 一个表中多个字段条件查询（单值查询或范围查询）} 
+
+explain select sid from shop where good\_remarks>20 and very\_bad\_remarks<10;
+
+查询shop id，好评大于20 极差小于10 的情况。读取行数979行。
+
+\begin{verbatim}
 +----+-------------+-------+------+---------------+------+---------+------+------+-------------+
 | id | select_type | table | type | possible_keys | key  | key_len | ref  | rows | Extra       |
 +----+-------------+-------+------+---------------+------+---------+------+------+-------------+
 |  1 | SIMPLE      | shop  | ALL  | NULL          | NULL | NULL    | NULL |  979 | Using where |
 +----+-------------+-------+------+---------------+------+---------+------+------+-------------+
-1 row in set (0.00 sec)
+\end{verbatim}
 
-create index index_goodremarks on shop(good_remarks);
-create index index_verybadremarks on shop(very_bad_remarks);
+优化：
 
-explain select sid from shop where good_remarks>20 and very_bad_remarks<10;
+create index index\_goodremarks on shop(good\_remarks);
+
+create index index\_verybadremarks on shop(very\_bad\_remarks);
+
+explain select sid from shop where good\_remarks>20 and very\_bad\_remarks<10;
+
+\begin{verbatim}
 +----+-------------+-------+-------+----------------------------------------+-------------------+---------+------+------+------------------------------------+
 | id | select_type | table | type  | possible_keys                          | key               | key_len | ref  | rows | Extra                              |
 +----+-------------+-------+-------+----------------------------------------+-------------------+---------+------+------+------------------------------------+
 |  1 | SIMPLE      | shop  | range | index_goodremarks,index_verybadremarks | index_goodremarks | 5       | NULL |  178 | Using index condition; Using where |
 +----+-------------+-------+-------+----------------------------------------+-------------------+---------+------+------+------------------------------------+
-1 row in set (0.00 sec)
+\end{verbatim}
 
+建立了两个索引，大大减少了查询的行数，变成了1/5。
 
-1.7
-(1)
-explain select province from city where cid in ('1', '2', '3');
+\vspace{0.7cm}
 
+\textbf{(7) 用”in”进行条件查询} 
+
+i. explain select province from city where cid in ('1', '2', '3');
+
+查询city id 为1,2,3的省份，因为是主键就有索引。所以只有3行查询。
+
+\begin{verbatim}
 +----+-------------+-------+-------+---------------+---------+---------+------+------+-------------+
 | id | select_type | table | type  | possible_keys | key     | key_len | ref  | rows | Extra       |
 +----+-------------+-------+-------+---------------+---------+---------+------+------+-------------+
 |  1 | SIMPLE      | city  | range | PRIMARY       | PRIMARY | 4       | NULL |    3 | Using where |
 +----+-------------+-------+-------+---------------+---------+---------+------+------+-------------+
-1 row in set (0.00 sec)
+\end{verbatim}
 
-(2)
-explain select name from city where province in ('浙江', '广州');
+无需优化
 
+ii. explain select name from city where province in ('浙江', '广州');
+
+查询省份是浙江，广州的城市。读取了59行（全部数据）。
+
+\begin{verbatim}
 +----+-------------+-------+------+---------------+------+---------+------+------+-------------+
 | id | select_type | table | type | possible_keys | key  | key_len | ref  | rows | Extra       |
 +----+-------------+-------+------+---------------+------+---------+------+------+-------------+
 |  1 | SIMPLE      | city  | ALL  | NULL          | NULL | NULL    | NULL |   59 | Using where |
 +----+-------------+-------+------+---------------+------+---------+------+------+-------------+
-1 row in set (0.00 sec)
+\end{verbatim}
 
-create index index_province on city(province);
+create index index\_province on city(province);
 
 explain select name from city where province in ('浙江', '广州');
 
+\begin{verbatim}
 +----+-------------+-------+-------+----------------+----------------+---------+------+------+-----------------------+
 | id | select_type | table | type  | possible_keys  | key            | key_len | ref  | rows | Extra                 |
 +----+-------------+-------+-------+----------------+----------------+---------+------+------+-----------------------+
 |  1 | SIMPLE      | city  | range | index_province | index_province | 33      | NULL |    7 | Using index condition |
 +----+-------------+-------+-------+----------------+----------------+---------+------+------+-----------------------+
-1 row in set (0.00 sec)
+\end{verbatim}
 
+优化：以province建立索引以后，估计读取行数减少为1/8。
 
-1.8
-explain select * from shop where avg_price<20 order by avg_price;
+\vspace{0.7cm}
 
+\textbf{(8) 一个表中 group by、order by、having 联合条件查询} 
+
+explain select * from shop where avg\_price<20 order by avg\_price;
+
+排序avg\_price，找到小于20的商铺信息。读取了全部数据。
+
+\begin{verbatim}
 +----+-------------+-------+------+---------------+------+---------+------+------+-----------------------------+
 | id | select_type | table | type | possible_keys | key  | key_len | ref  | rows | Extra                       |
 +----+-------------+-------+------+---------------+------+---------+------+------+-----------------------------+
 |  1 | SIMPLE      | shop  | ALL  | NULL          | NULL | NULL    | NULL |  979 | Using where; Using filesort |
 +----+-------------+-------+------+---------------+------+---------+------+------+-----------------------------+
-1 row in set (0.00 sec)
+\end{verbatim}
 
-create index price on shop(avg_price);
+create index price on shop(avg\_price);
 
-explain select * from shop where avg_price<20 order by avg_price;
+explain select * from shop where avg\_price<20 order by avg\_price;
 
+\begin{verbatim}
 +----+-------------+-------+-------+---------------+-------+---------+------+------+-----------------------+
 | id | select_type | table | type  | possible_keys | key   | key_len | ref  | rows | Extra                 |
 +----+-------------+-------+-------+---------------+-------+---------+------+------+-----------------------+
 |  1 | SIMPLE      | shop  | range | price         | price | 5       | NULL |  233 | Using index condition |
 +----+-------------+-------+-------+---------------+-------+---------+------+------+-----------------------+
-1 row in set (0.00 sec)
+\end{verbatim}
 
+优化：建立avg\_price索引，读取次数减少到了1/4.
 
-2.1
+\subsubsection{复合查询}
+
+\textbf{(1) 多表联合查询} 
+
 explain select sid from shop, city, address where shop.address=address.address and address.cid=city.cid and city.cid=1;
+
+合并shop、city、address两个表，查找出cid = 1的商铺编号。
+
+\begin{verbatim}
 +----+-------------+---------+-------+---------------+---------+---------+-------+------+----------------------------------------------------+
 | id | select_type | table   | type  | possible_keys | key     | key_len | ref   | rows | Extra                                              |
 +----+-------------+---------+-------+---------------+---------+---------+-------+------+----------------------------------------------------+
@@ -159,11 +334,13 @@ explain select sid from shop, city, address where shop.address=address.address a
 |  1 | SIMPLE      | address | ref   | cid           | cid     | 5       | const |  255 | NULL                                               |
 |  1 | SIMPLE      | shop    | ALL   | NULL          | NULL    | NULL    | NULL  |  961 | Using where; Using join buffer (Block Nested Loop) |
 +----+-------------+---------+-------+---------------+---------+---------+-------+------+----------------------------------------------------+
-3 rows in set (0.00 sec)
+\end{verbatim}
 
-create index index_address on address(address);
+create index index\_address on address(address);
 
 explain select sid from shop, city, address where shop.address=address.address and address.cid=city.cid and city.cid=1;
+
+\begin{verbatim}
 +----+-------------+---------+-------+-------------------+---------------+---------+---------------------+------+-------------+
 | id | select_type | table   | type  | possible_keys     | key           | key_len | ref                 | rows | Extra       |
 +----+-------------+---------+-------+-------------------+---------------+---------+---------------------+------+-------------+
@@ -171,14 +348,21 @@ explain select sid from shop, city, address where shop.address=address.address a
 |  1 | SIMPLE      | shop    | ALL   | NULL              | NULL          | NULL    | NULL                |  961 | Using where |
 |  1 | SIMPLE      | address | ref   | cid,index_address | index_address | 303     | sqlopt.shop.address |    1 | Using where |
 +----+-------------+---------+-------+-------------------+---------------+---------+---------------------+------+-------------+
-3 rows in set (0.00 sec)
+\end{verbatim}
 
-2.2
+优化建立address的索引，因为cid是主键已经有索引，所以address和city只需查找一行。
 
+\vspace{0.7cm}
 
-2.3
-explain select cid from address where exists (select * from shop, address where shop.address=address.address and shop.avg_price<20);
+\textbf{(2) join 查询} 
 
+\vspace{0.7cm}
+
+\textbf{(3) 存在量词（exists）查询} 
+
+explain select cid from address where exists (select * from shop, address where shop.address=address.address and shop.avg\_price<20);
+
+\begin{verbatim}
 +----+-------------+---------+-------+---------------+---------------+---------+---------------------+------+------------------------------------+
 | id | select_type | table   | type  | possible_keys | key           | key_len | ref                 | rows | Extra                              |
 +----+-------------+---------+-------+---------------+---------------+---------+---------------------+------+------------------------------------+
@@ -186,70 +370,91 @@ explain select cid from address where exists (select * from shop, address where 
 |  2 | SUBQUERY    | shop    | range | price         | price         | 5       | NULL                |  233 | Using index condition; Using where |
 |  2 | SUBQUERY    | address | ref   | index_address | index_address | 303     | sqlopt.shop.address |    1 | Using index                        |
 +----+-------------+---------+-------+---------------+---------------+---------+---------------------+------+------------------------------------+
-3 rows in set (0.00 sec)
+\end{verbatim}
 
-2.4
-explain select name from (select * from shop where avg_price < 20) as D;
+\vspace{0.7cm}
 
+\textbf{(4) 嵌套子查询（select … from (select …)）} 
+
+explain select name from (select * from shop where avg\_price < 20) as D;
+
+\begin{verbatim}
 +----+-------------+------------+------+---------------+------+---------+------+------+-------------+
 | id | select_type | table      | type | possible_keys | key  | key_len | ref  | rows | Extra       |
 +----+-------------+------------+------+---------------+------+---------+------+------+-------------+
 |  1 | PRIMARY     | <derived2> | ALL  | NULL          | NULL | NULL    | NULL |  961 | NULL        |
 |  2 | DERIVED     | shop       | ALL  | NULL          | NULL | NULL    | NULL |  961 | Using where |
 +----+-------------+------------+------+---------------+------+---------+------+------+-------------+
-2 rows in set (0.00 sec)
+\end{verbatim}
 
-create index price on shop(avg_price);
+create index price on shop(avg\_price);
 
-explain select name from (select * from shop where avg_price < 20) as D;
+explain select name from (select * from shop where avg\_price < 20) as D;
+
+\begin{verbatim}
 +----+-------------+------------+-------+---------------+-------+---------+------+------+-----------------------+
 | id | select_type | table      | type  | possible_keys | key   | key_len | ref  | rows | Extra                 |
 +----+-------------+------------+-------+---------------+-------+---------+------+------+-----------------------+
 |  1 | PRIMARY     | <derived2> | ALL   | NULL          | NULL  | NULL    | NULL |  233 | NULL                  |
 |  2 | DERIVED     | shop       | range | price         | price | 5       | NULL |  233 | Using index condition |
 +----+-------------+------------+-------+---------------+-------+---------+------+------+-----------------------+
-2 rows in set (0.00 sec)
+\end{verbatim}
 
 change to:
 
-explain select name from shop where avg_price < 20;
+explain select name from shop where avg\_price < 20;
+
+\begin{verbatim}
 +----+-------------+-------+-------+---------------+-------+---------+------+------+-----------------------+
 | id | select_type | table | type  | possible_keys | key   | key_len | ref  | rows | Extra                 |
 +----+-------------+-------+-------+---------------+-------+---------+------+------+-----------------------+
 |  1 | SIMPLE      | shop  | range | price         | price | 5       | NULL |  233 | Using index condition |
 +----+-------------+-------+-------+---------------+-------+---------+------+------+-----------------------+
-1 row in set (0.00 sec)
+\end{verbatim}
 
+\subsubsection{其他查询}
 
-3.1
+\textbf{(1) 向表中插入记录} 
+
 explain insert into city values('test', 'test', 11111);
+
+\begin{verbatim}
 +----+-------------+-------+------+---------------+------+---------+------+------+----------------+
 | id | select_type | table | type | possible_keys | key  | key_len | ref  | rows | Extra          |
 +----+-------------+-------+------+---------------+------+---------+------+------+----------------+
 |  1 | SIMPLE      | NULL  | NULL | NULL          | NULL | NULL    | NULL | NULL | No tables used |
 +----+-------------+-------+------+---------------+------+---------+------+------+----------------+
-1 row in set (0.00 sec)
+\end{verbatim}
 
-3.2
+\vspace{0.7cm}
+
+\textbf{(2) 向表中删除记录} 
+
 explain delete from city where name='test';
+
+\begin{verbatim}
 +----+-------------+-------+------+---------------+------+---------+------+------+-------------+
 | id | select_type | table | type | possible_keys | key  | key_len | ref  | rows | Extra       |
 +----+-------------+-------+------+---------------+------+---------+------+------+-------------+
 |  1 | SIMPLE      | city  | ALL  | NULL          | NULL | NULL    | NULL |   59 | Using where |
 +----+-------------+-------+------+---------------+------+---------+------+------+-------------+
-1 row in set (0.00 sec)
+\end{verbatim}
 
-create index index_name on city(name);
+create index index\_name on city(name);
 
 explain delete from city where name='test';
+
+\begin{verbatim}
 +----+-------------+-------+-------+---------------+------------+---------+-------+------+-------------+
 | id | select_type | table | type  | possible_keys | key        | key_len | ref   | rows | Extra       |
 +----+-------------+-------+-------+---------------+------------+---------+-------+------+-------------+
 |  1 | SIMPLE      | city  | range | index_name    | index_name | 303     | const |    1 | Using where |
 +----+-------------+-------+-------+---------------+------------+---------+-------+------+-------------+
-1 row in set (0.00 sec)
+\end{verbatim}
+
+\subsection{Task 3}
 
 
+\section{实验总结}
 
-
-
+\end{document}
