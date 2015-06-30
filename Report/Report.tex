@@ -356,6 +356,16 @@ explain select sid from shop, city, address where shop.address=address.address a
 
 \textbf{(2) join 查询} 
 
+explain select sid, name, city from shop, city, address where shop.address=address.address and address.cid=city.cid and avg\_price<20;(约0.0024s)
+
+对于上述查询，sql会先将shop,city,address做笛卡尔积，再从中选择出符合条件的元组
+
+优化：可以将选择操作提前到叉积之前，并且将叉积操作变为连接操作，这样可以减少连接的数量，也避免了大量的叉积操作，优化之后
+
+explain select sid,name,city from (select sid,name,address from shop where avg\_price<20) as A inner join city using(cid);(约0.0015s)
+
+进一步优化，可以对avg\_price添加索引，使得查询更快。
+
 \vspace{0.7cm}
 
 \textbf{(3) 存在量词（exists）查询} 
@@ -371,6 +381,14 @@ explain select cid from address where exists (select * from shop, address where 
 |  2 | SUBQUERY    | address | ref   | index_address | index_address | 303     | sqlopt.shop.address |    1 | Using index                        |
 +----+-------------+---------+-------+---------------+---------------+---------+---------------------+------+------------------------------------+
 \end{verbatim}
+
+添加索引以后发现效率得不到提升，于是，考虑是exist本身的问题。
+
+修改查询方式：
+
+explain select cid from address, shop where shop.address=address.address and shop.avg\_price<20;
+
+修改为普通方式之后再添加索引就大大提升了效率。
 
 \vspace{0.7cm}
 
@@ -404,6 +422,8 @@ change to:
 
 explain select name from shop where avg\_price < 20;
 
+把嵌套的查询改成普通的查询可以更加快。
+
 \begin{verbatim}
 +----+-------------+-------+-------+---------------+-------+---------+------+------+-----------------------+
 | id | select_type | table | type  | possible_keys | key   | key_len | ref  | rows | Extra                 |
@@ -426,6 +446,8 @@ explain insert into city values('test', 'test', 11111);
 +----+-------------+-------+------+---------------+------+---------+------+------+----------------+
 \end{verbatim}
 
+无需优化
+
 \vspace{0.7cm}
 
 \textbf{(2) 向表中删除记录} 
@@ -441,6 +463,8 @@ explain delete from city where name='test';
 \end{verbatim}
 
 create index index\_name on city(name);
+
+添加索引可以让删除时候的查找更加快。
 
 explain delete from city where name='test';
 
